@@ -1,11 +1,12 @@
 //code by bitluni give me a shout-out if you like it
 
-#include <soc/rtc.h>
+#include "esp_pm.h"
 #include "AudioSystem.h"
 #include "AudioOutput.h"
 #include "Graphics.h"
 #include "Image.h"
-#include "SimplePALOutput.h"
+//#include "SimplePALOutput.h"
+#include "SimpleNTSCOutput.h"
 #include "GameControllers.h"
 #include "Sprites.h"
 #include "Font.h"
@@ -41,7 +42,8 @@ const int XRES = 320;
 //const int YRES = 144;
 const int YRES = 240;
 Graphics graphics(XRES, YRES);
-SimplePALOutput composite;
+//SimplePALOutput composite;
+SimpleNTSCOutput composite;
 
 void compositeCore(void *data)
 {
@@ -56,23 +58,27 @@ int costab[256];
 
 void setup()
 {
-  rtc_clk_cpu_freq_set(RTC_CPU_FREQ_240M);              //highest cpu frequency
-
+  //rtc_clk_cpu_freq_set(RTC_CPU_FREQ_240M);              //highest cpu frequency
+  //highest clockspeed needed
+  esp_pm_lock_handle_t powerManagementLock;
+  esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "compositeCorePerformanceLock", &powerManagementLock);
+  esp_pm_lock_acquire(powerManagementLock); 
   //initialize composite output and graphics
   composite.init();
   graphics.init();
   graphics.setFont(font);
-  xTaskCreatePinnedToCore(compositeCore, "c", 1024, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(compositeCore, "compositeCoreTask", 1024, NULL, 1, NULL, 0);
 
+  //too high load for NTSC  
   //initialize audio output
-  audioOutput.init(audioSystem);
+  //audioOutput.init(audioSystem);
 
   //initialize controllers
   controllers.init(LATCH, CLOCK);
   controllers.setController(0, GameControllers::NES, CONTROLLER_DATA_PIN); //first controller
 
   //Play first sound in loop (music)
-  music.play(audioSystem, 0);
+  //music.play(audioSystem, 0);
 
   for(int i = 0; i < 256; i++)
   {
@@ -84,7 +90,7 @@ void setup()
 void loop()
 {
   //fill audio buffer
-  audioSystem.calcSamples();
+  //audioSystem.calcSamples();
   
 /*  //read controllers
   controllers.poll();
@@ -167,5 +173,3 @@ void loop()
   }
   graphics.end();
 }
-
-
