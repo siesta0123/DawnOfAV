@@ -86,7 +86,7 @@ class SimplePALOutput
       int p = frameStart + i;
       int c = p - burstStart;
       SIN[i] = round(0.436798 * sin(c * burstPerSample) * 256);
-      COS[i] = round(0.614777 * cos(c * burstPerSample) * 256);     
+      COS[i] = round(0.614777 * cos(c * burstPerSample) * 256);
     }
 
     for(int i = 0; i < 16; i++)
@@ -177,5 +177,3 @@ class SimplePALOutput
       sendLine(shortSync);
   }
 };
-
-

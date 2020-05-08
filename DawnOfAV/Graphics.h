@@ -111,4 +111,3 @@ class Graphics
   void fillRect(int x, int y, int w, int h, unsigned int color);
   void rect(int x, int y, int w, int h, unsigned int color);
 };
-

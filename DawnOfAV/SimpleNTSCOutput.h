@@ -7,13 +7,13 @@ const int memSamples = 912;
 const int syncSamples = 68;
 const int burstSamples = 36;
 const int burstStart = 76;
-const int frameStart = 204; //must be even to simplify buffer word swap 136+(910-640-136)/2
+const int frameStart = 200; //must be even to simplify buffer word swap 136+(910-640-136)/2
 const int imageSamples = 640;
 
 const int syncLevel = 0;
-const int blankLevel = 24;
-const int burstAmp = 10;
-const int maxLevel = 55;
+const int blankLevel = 25;
+const int burstAmp = 11;
+const int maxLevel = 60;
 //const double burstPerSample = (2 * M_PI) / (13333333 / 4433618.75);
 const double burstPerSample = 1.5707963;
 const float colorFactor = (M_PI * 2) / 16;
@@ -58,17 +58,17 @@ class SimpleNTSCOutput
     {
       lineShortSync[i ^ 1] = syncLevel << 8;
       lineShortShortSync[i ^ 1] = syncLevel << 8;
-      lineShortShortSync[(lineSamples/2 + i) ^ 1] = syncLevel << 8;
-      lineHalfFrameSync[(lineSamples/2 + i) ^ 1] = syncLevel << 8;
+      lineShortShortSync[(lineSamples / 2 + i) ^ 1] = syncLevel << 8;
+      lineHalfFrameSync[(lineSamples / 2 + i) ^ 1] = syncLevel << 8;
       lineShortLongSync[i ^ 1] = syncLevel << 8;
     }
     
     for(int i = 0; i < syncSamples; i++)
     {
-      lineLongSync[(lineSamples/2 - syncSamples + i) ^ 1] = blankLevel  << 8;
+      lineLongSync[(lineSamples / 2 - syncSamples + i) ^ 1] = blankLevel  << 8;
       lineLongSync[(lineSamples - syncSamples + i) ^ 1] = blankLevel  << 8;
       lineHalfFrameSync[i ^ 1] = syncLevel << 8;
-      lineLongShortSync[(lineSamples/2 - syncSamples + i) ^ 1] = blankLevel  << 8;
+      lineLongShortSync[(lineSamples / 2 - syncSamples + i) ^ 1] = blankLevel  << 8;
       line[0][i ^ 1] = syncLevel  << 8;
       line[1][i ^ 1] = syncLevel  << 8;
       lineBlank[0][i ^ 1] = syncLevel  << 8;
@@ -77,11 +77,11 @@ class SimpleNTSCOutput
     
     for(int i = 0; i < lineSamples - syncSamples; i++)
     {
-      if(i >= (lineSamples/2 - syncSamples) && i < (lineSamples - syncSamples * 2)){
+      if(i >= (lineSamples / 2 - syncSamples) && i < (lineSamples - syncSamples * 2)){
         lineShortLongSync[(i + syncSamples) ^ 1] = syncLevel  << 8;
       }
-      if(i <= (lineSamples/2 - syncSamples/2)){
-        lineLongShortSync[(lineSamples/2 + syncSamples/2 + i) ^ 1] = blankLevel  << 8;
+      if(i <= (lineSamples / 2 - syncSamples / 2)){
+        lineLongShortSync[(lineSamples/2 + syncSamples / 2 + i) ^ 1] = blankLevel  << 8;
       }
       line[0][(i + syncSamples) ^ 1] = blankLevel  << 8;
       line[1][(i + syncSamples) ^ 1] = blankLevel  << 8;
@@ -103,10 +103,8 @@ class SimpleNTSCOutput
     {
       int p = frameStart + i;
       int c = p - burstStart;
-      SIN[i] = round(0.4921 * sin(c * burstPerSample) * 256);
-      COS[i] = round(0.8773 * cos(c * burstPerSample) * 256);     
-      //SIN[i] = round(0.436798 * sin(c * burstPerSample) * 256);
-      //COS[i] = round(0.614777 * cos(c * burstPerSample) * 256);     
+      SIN[i] = round(0.436798 * sin(c * burstPerSample) * 256);
+      COS[i] = round(0.614777 * cos(c * burstPerSample) * 256);     
     }
 
     for(int i = 0; i < 16; i++)
@@ -170,7 +168,7 @@ class SimpleNTSCOutput
   void sendFrame(char ***frame)
   {
     static int field = 0;
-    static int nextfield[4] = { 3, 2, 1, 0};
+    static int nextfield[] = { 3, 0, 1, 2};
     
     //equalizing pulses
       sendLine(lineShortShortSync);
@@ -228,7 +226,7 @@ class SimpleNTSCOutput
       char *pixels0 = (*frame)[i];
       char *pixels1 = (*frame)[i + 1];
       int j = frameStart;
-      if(field <=1){
+      if(field <= 1){
         for(int x = 0; x < imageSamples; x += 2){
           unsigned short p0 = *(pixels0++);
           unsigned short p1 = *(pixels1++);
@@ -240,7 +238,7 @@ class SimpleNTSCOutput
           short u1 = (SIN[x + 1] * p04);
           short v0 = (COS[x] * p14);
           short v1 = (COS[x + 1] * p14);
-          //word order is swapped for I2S packing (j + 1) comes first then j          line[0][j] = y0 -u1 -v1;
+          //word order is swapped for I2S packing (j + 1) comes first then j
           line[1][j] = y0 + u1 + v1;
           line[0][j] = y1 - u1 - v1;
           line[1][j+1] = y0 + u0 + v0;
@@ -261,9 +259,9 @@ class SimpleNTSCOutput
           short u1 = (SIN[x + 1] * p04);
           short v0 = (COS[x] * p14);
           short v1 = (COS[x + 1] * p14);
-          //word order is swapped for I2S packing (j + 1) comes first then j          line[0][j] = y0 -u1 -v1;
-          line[0][j] = y0 + u1 + v1;
-          line[1][j] = y1 + u1 - v1;
+          //word order is swapped for I2S packing (j + 1) comes first then j
+          line[0][j] = y0 - u1 - v1;
+          line[1][j] = y1 + u1 + v1;
           line[0][j+1] = y0 - u0 - v0;
           line[1][j+1] = y1 + u0 + v0;
           j += 2;
@@ -272,16 +270,17 @@ class SimpleNTSCOutput
         sendLine(line[1]);
       }
     }
-      if(field <= 1){
-        sendLine(lineBlank[1]);
-        sendLine(lineBlank[0]);
-      }else{
-        sendLine(lineBlank[0]);
-        sendLine(lineBlank[1]);
-      }
-      if(field == 0 || field == 2){
-        sendLine(lineHalfFrameSync);
-      }
-      field = nextfield[field];
+    if(field <= 1){
+      sendLine(lineBlank[1]);
+      sendLine(lineBlank[0]);
+    }else{
+      sendLine(lineBlank[0]);
+      sendLine(lineBlank[1]);
+    }
+    if(field == 0 || field == 2){
+      sendLine(lineHalfFrameSync);
+    }
+    
+    field = nextfield[field];
   }
 };
